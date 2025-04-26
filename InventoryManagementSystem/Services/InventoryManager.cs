@@ -10,6 +10,7 @@ public class InventoryManager
 
     public async Task<List<Product>> AddProduct(string name, decimal quantity, decimal price, List<Product>? products)
     {
+        products ??= new List<Product>(); // Initialize if null
         products.Add(new Product
         {
             ProductId = IdGenerator(products),
@@ -51,7 +52,7 @@ public class InventoryManager
         return products;
     }
 
-    public async Task<ProductViewModel> ListOfProducts(List<Product>? products)
+    public async Task<ProductViewModel?> ListOfProducts(List<Product>? products)
     {
         var productViewModel = new ProductViewModel();
         try
@@ -62,9 +63,6 @@ public class InventoryManager
         }
         catch (Exception)
         {
-
-            Console.WriteLine("No Products found");
-            Environment.Exit(0);
             return productViewModel;
         }
     }
@@ -78,7 +76,7 @@ public class InventoryManager
 
     public int IdGenerator(List<Product>? products)
     {
-        if (products.Any() & products.Count() > 0)
+        if (products.Any() && products.Count > 0)
         {
             var lastProduct = products.OrderBy(x => x.ProductId).Last();
             return lastProduct.ProductId + 1;
@@ -100,6 +98,16 @@ public class InventoryManager
                 Environment.Exit(0);
             }
         }
+    }
+
+    public async Task<Product> GetById (int id, List<Product>? products)
+    {
+        var data = products.FirstOrDefault(x => x.ProductId == id);
+        if (data == null)
+        {
+            Console.WriteLine("Product with this Id does not exist.");
+        }
+        return data;
     }
 
     #endregion
