@@ -12,6 +12,7 @@ public class InventoryManager
     public async Task<List<Product>> AddProduct(string name, decimal quantity, decimal price, List<Product>? products)
     {
         products ??= new List<Product>(); // Initialize if null
+        //Mapped Values
         products.Add(new Product
         {
             ProductId = IdGenerator(products),
@@ -25,7 +26,9 @@ public class InventoryManager
     }
     public async Task<List<Product>> UpdateProduct(int id, string name, decimal quantity, decimal price, List<Product>? products)
     {
+        //Get Data by product Id
         var data = products.FirstOrDefault(x => x.ProductId == id);
+        //Mapped Values
         if (data != null)
         {
             data.Name = name;
@@ -40,7 +43,9 @@ public class InventoryManager
     {
         try
         {
+            //Get Data by product Id
             var data = products.FirstOrDefault(x => x.ProductId == id);
+            //Remove
             if (data != null)
                 products.Remove(data);
         }
@@ -57,6 +62,7 @@ public class InventoryManager
         var productViewModel = new ProductViewModel();
         try
         {
+            //Mapped Values
             productViewModel.Products = products;
             productViewModel.TotalValue = GetTotalValue(products);
             return productViewModel;
@@ -69,6 +75,7 @@ public class InventoryManager
 
     public decimal GetTotalValue(List<Product> products)
     {
+        //Get Total Value
         var total = products.Sum(p => p.Total);
         return total ?? 0.00m;
     }
@@ -76,6 +83,7 @@ public class InventoryManager
 
     public int IdGenerator(List<Product>? products)
     {
+        //Generate Id
         if (products.Any() && products.Count > 0)
         {
             var lastProduct = products.OrderBy(x => x.ProductId).Last();
@@ -89,7 +97,7 @@ public class InventoryManager
 
     public async Task<bool> NameChecker(string name, int id, List<Product>? products)
     {
-        if (products != null)
+        if (products.Any() && products.Count > 0)
         {
             // Check if the name already exists in the list of products
             var data = products.FirstOrDefault(x => x.Name.Trim().ToLower() == name.Trim().ToLower());
@@ -108,6 +116,7 @@ public class InventoryManager
 
     public async Task<Product> GetById(int id, List<Product>? products)
     {
+        //Get Data by product Id
         var data = products.FirstOrDefault(x => x.ProductId == id);
         if (data == null)
         {

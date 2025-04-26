@@ -1,9 +1,6 @@
-﻿using System.Globalization;
-using InventoryManagementSystem.Core.Models;
+﻿using InventoryManagementSystem.Core.Models;
 using InventoryManagementSystem.Services;
 using Spectre.Console;
-using static System.Net.Mime.MediaTypeNames;
-using Text = Spectre.Console.Text;
 
 namespace InventoryManagementSystem;
 
@@ -14,8 +11,9 @@ public class App
     {
         _inventoryManager = inventoryManager;
     }
-    public async Task Run(List<Product>? products)
+    public async Task Run(List<Product> products)
     {
+        //Initialize the app
         await Loading();
         await AsciiText();
         await MenuList(products);
@@ -23,8 +21,10 @@ public class App
     }
     public async Task Loading(string action = "Loading...", string output = "Initializing...", int timer = 1000)
     {
+        //Loading UI
         await Task.Delay(1000);
         AnsiConsole.Status()
+        .SpinnerStyle(Style.Parse("yellow"))
         .Start(action, ctx =>
         {
             // Simulate some work       
@@ -39,14 +39,9 @@ public class App
             Thread.Sleep(1000);
         });
     }
-
-    public async Task AsciiText()
+    public async Task AsciiText(string text = "Inventory Management System", string justify = "center")
     {
-        var intro = "Inventory Management System";
-        await AsciiText(intro, "center"); // Use your overloaded method
-    }
-    public async Task AsciiText(string text, string justify)
-    {
+        //Display Ascii Text with 
         var justified = justify.ToUpper();
 
         var asciiArt = new FigletText(text)
@@ -59,12 +54,12 @@ public class App
                 _ => Justify.Center
             }
         };
-
+        //Create Ascii Art
         AnsiConsole.Write(asciiArt);
     }
 
 
-    public async Task MenuList(List<Product>? products)
+    public async Task MenuList(List<Product> products)
     {
         //Menu Selection
         var selection = AnsiConsole.Prompt(
@@ -77,7 +72,7 @@ public class App
                 "Exit"
                 }).WrapAround());
 
-
+        // Handle menu selection
         if (selection == ("Inventory List"))
         {
             await InventoryList(products);
@@ -92,6 +87,7 @@ public class App
         }
         else
         {
+            //Exit the program
             var confirm = await MenuPrompt(products, "Do you want to close this program ?");
             if (confirm)
             {
@@ -106,9 +102,11 @@ public class App
 
     public async Task<string> AddQuestions(string question, string constraint)
     {
+        //Create Rules
         var rule = new Rule($"[red]{constraint}[/]");
         rule.Justification = Justify.Left;
         AnsiConsole.Write(rule);
+        //Create Prompt
         var answer = AnsiConsole.Prompt(
             new TextPrompt<string>($"{question}"));
 
@@ -117,6 +115,7 @@ public class App
 
     public async Task Refresh(List<Product> products)
     {
+        //Refresh the menu
         AnsiConsole.Clear();
         await Run(products);
     }
@@ -126,12 +125,14 @@ public class App
     {
         // Ask the user to confirm
         var confirmation = AnsiConsole.Prompt(
-            new TextPrompt<bool>($"{message}")
-                .AddChoice(true)
-                .AddChoice(false)
-                .DefaultValue(true)
-                .WithConverter(choice => choice ? "Y" : "N"));
-        return confirmation;
+            new TextPrompt<string>($"{message}")
+                .AddChoice("y")
+                .AddChoice("Y")
+                .AddChoice("n")
+                .AddChoice("N")
+                .DefaultValue("N"));
+        var result = confirmation.Equals("y", StringComparison.OrdinalIgnoreCase) ? true : false;
+        return result;
     }
 
 
@@ -149,7 +150,7 @@ public class App
             var productsTable = new Table().Centered();
 
             //Add Default columns
-            if (viewModel.Products != null && viewModel.Products.Count > 0)
+            if (viewModel.Products.Any() && viewModel.Products.Count > 0)
             {
                 if (viewModel != null && viewModel.Products.Any() && viewModel.Products.Count > 0)
                 {
@@ -189,7 +190,7 @@ public class App
 
 
 
-
+            //Create Menu Prompt
             var action = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
                 .HighlightStyle(Style.Parse("cyan"))
@@ -218,7 +219,7 @@ public class App
                 else if (action == "Edit Product")
                 {
                     // Code to edit the product
-                    if (products != null)
+                    if (products.Any() && products.Count > 0)
                     {
                         var edit = await MenuPrompt(products, "Do you want to edit this product?");
                         if (edit)
@@ -257,10 +258,10 @@ public class App
                 {
                     // Code to remove the product
 
-                    if (products != null)
+                    if (products.Any() && products.Count > 0)
                     {
-                        var edit = await MenuPrompt(products, "Do you want to remove this product?");
-                        if (edit)
+                        var delete = await MenuPrompt(products, "Do you want to remove this product?");
+                        if (delete)
                         {
                             Console.WriteLine("Enter the product ID to delete: ");
                             var id = Console.ReadLine();
@@ -301,7 +302,7 @@ public class App
     {
         do
         {
-
+            //Add Product UI
             AnsiConsole.Clear();
             await AsciiText("Add Product", "left");
 
@@ -312,7 +313,7 @@ public class App
                 .Title("[underline italic cyan]Action Menu[/]")
                 .PageSize(10)
                 .AddChoices(new[] {
-                "Add Product", "Inventory List", "Back to Menu"
+                "Create Product", "Inventory List", "Back to Menu"
                 }).WrapAround());
 
             // Handle action selection
@@ -326,6 +327,7 @@ public class App
             }
             else if (action == "Inventory List")
             {
+                // Code to show the inventory list
                 await InventoryList(products);
             }
             else
@@ -356,11 +358,12 @@ public class App
     {
         do
         {
-
+            //Edit Product UI
             AnsiConsole.Clear();
             await AsciiText("Edit Product", "left");
 
             //Layout
+
             // Create the layout
             var layout = new Layout("Root")
                 .SplitColumns(
@@ -391,7 +394,7 @@ public class App
                 .Title("[underline italic cyan]Action Menu[/]")
                 .PageSize(10)
                 .AddChoices(new[] {
-                "Edit This Product", "Inventory List", "Back to Menu"
+                "Update Item", "Inventory List", "Back to Menu"
                 }).WrapAround());
 
             // Handle action selection
@@ -405,6 +408,7 @@ public class App
             }
             else if (action == "Inventory List")
             {
+                // Code to show the inventory list
                 await InventoryList(productlist);
             }
             else
@@ -434,6 +438,7 @@ public class App
     {
         do
         {
+            //Remove Product UI
             AnsiConsole.Clear();
             await Loading();
             await AsciiText("Remove Product", "left");
@@ -466,14 +471,14 @@ public class App
                     );
             AnsiConsole.Write(productsTable);
 
-            //Create Prompt
+            //Create Menu Prompt
             var action = AnsiConsole.Prompt(
                 new SelectionPrompt<string>()
                     .HighlightStyle(Style.Parse("cyan"))
                     .Title("[underline italic cyan]Action Menu[/]")
                     .PageSize(10)
                     .AddChoices(new[] {
-                "Remove Product", "Inventory List", "Back to Menu"
+                "Delete Item", "Inventory List", "Back to Menu"
                     }).WrapAround());
 
             // Handle action selection
@@ -487,10 +492,12 @@ public class App
             }
             else if (action == "Inventory List")
             {
+                // Code to show the inventory list
                 await InventoryList(productlist);
             }
             else
             {
+                //Remove product
                 AnsiConsole.MarkupLine("[red italic]This action is irreversible[/]");
                 var confirm = await MenuPrompt(productlist, "Do you want to remove this product? ");
                 if (confirm)
@@ -503,12 +510,14 @@ public class App
                 }
                 else
                 {
+                    // Code to cancel the deletion
+                    await Loading("Refreshing", "Reloading", 500);
                     continue;
                 }
-                
+
             }
         } while (true);
-        
+
     }
 
     public async Task About(List<Product> products)
@@ -518,10 +527,12 @@ public class App
         {
             AnsiConsole.Clear();
             await AsciiText("About Me", "left");
+            //Table UI
             var table = new Table().RightAligned().NoBorder();
             table.AddColumn("Created By Jericho Mosqueda");
             AnsiConsole.Write(table);
 
+            //Menu Prompt
             var confirm = await MenuPrompt(products);
             if (confirm)
             {
@@ -534,9 +545,12 @@ public class App
     {
         do
         {
+            //Mapped Values UI
             AnsiConsole.Clear();
             await AsciiText($"{(product.ProductId == 0 ? "Add" : "Edit")} Product", "left");
             await Loading("Loading", "Initializing", 500);
+
+            //Display the product details if editing
             if (product.ProductId > 0)
             {
                 //Layout
@@ -564,20 +578,24 @@ public class App
                 AnsiConsole.Write(layout);
             }
 
+            //Create Name
             var name = await AddQuestions("Product Name : ", "Name must be unique");
             var nameExist = await _inventoryManager.NameChecker(name, product.ProductId, productList);
+            //Check if the name already exist
             if (nameExist)
             {
                 Thread.Sleep(1000);
                 continue;
             }
 
+            //Create Quantity
             var quantity = await AddQuestions("Quantity : ", "Quantity must be a positive integer");
             //Parse the quantity to decimal and check if the inputed is a non-negative number
             if (decimal.TryParse(quantity, out decimal quantityInstock))
             {
                 if (quantityInstock <= 0.00m)
                 {
+                    //Quantity must be greater than 0.00
                     AnsiConsole.MarkupLine("[red]Quantity must be greater than 0.00[/]");
                     Thread.Sleep(1000);
                     continue;
@@ -585,17 +603,20 @@ public class App
             }
             else
             {
+                //Quantity must be a positive integer
                 AnsiConsole.MarkupLine("[red]Invalid number format.[/]");
                 Thread.Sleep(1000);
                 continue;
             }
 
+            //Create Price
             var price = await AddQuestions("Price : ", "Price must be a positive integer");
             //Parse the price to decimal and check if the inputed is a non-negative number
             if (decimal.TryParse(price, out decimal priceInStock))
             {
                 if (priceInStock <= 0.00m)
                 {
+                    //Price must be greater than 0.00
                     AnsiConsole.MarkupLine("[red]Price must be greater than 0.00[/]");
                     Thread.Sleep(1000);
                     continue;
@@ -603,11 +624,13 @@ public class App
             }
             else
             {
+                //Price must be a positive integer
                 AnsiConsole.MarkupLine("[red]Invalid number format.[/]");
                 Thread.Sleep(1000);
                 continue;
             }
 
+            //Create Product
             product = new Product
             {
                 ProductId = product == null ? 0 : product.ProductId,
