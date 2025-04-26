@@ -149,7 +149,7 @@ public class App
             var productsTable = new Table().Centered();
 
             //Add Default columns
-            if (viewModel.Products != null || viewModel.Products.Count > 0)
+            if (viewModel.Products != null && viewModel.Products.Count > 0)
             {
                 if (viewModel != null && viewModel.Products.Any() && viewModel.Products.Count > 0)
                 {
