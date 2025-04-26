@@ -1,5 +1,6 @@
 ﻿using InventoryManagementSystem.Core;
 using InventoryManagementSystem.Core.Models;
+using Spectre.Console;
 using System.Xml.Linq;
 
 namespace InventoryManagementSystem.Services;
@@ -40,13 +41,12 @@ public class InventoryManager
         try
         {
             var data = products.FirstOrDefault(x => x.ProductId == id);
-            if(data != null)
+            if (data != null)
                 products.Remove(data);
         }
         catch (Exception)
         {
-
-            Console.WriteLine("Item already removed");
+            AnsiConsole.MarkupLine("[red]Item already removed.[/]");
         }
 
         return products;
@@ -87,25 +87,31 @@ public class InventoryManager
         }
     }
 
-    public void NameChecker(string name, List<Product>? products)
+    public async Task<bool> NameChecker(string name, int id, List<Product>? products)
     {
         if (products != null)
         {
-            var data = products.Any(x => x.Name == name);
-            if (data)
+            // Check if the name already exists in the list of products
+            var data = products.FirstOrDefault(x => x.Name.Trim().ToLower() == name.Trim().ToLower());
+            if(data != null)
             {
-                Console.WriteLine("Product name already exists");
-                Environment.Exit(0);
+                if (data.ProductId != id || id == 0)
+                {
+                    AnsiConsole.MarkupLine("[red]Product name already exists.[/]");
+                    return true;
+                }
             }
+            
         }
+        return false;
     }
 
-    public async Task<Product> GetById (int id, List<Product>? products)
+    public async Task<Product> GetById(int id, List<Product>? products)
     {
         var data = products.FirstOrDefault(x => x.ProductId == id);
         if (data == null)
         {
-            Console.WriteLine("Product with this Id does not exist.");
+            AnsiConsole.MarkupLine("[red]Product with this Id does not exist.[/]");
         }
         return data;
     }

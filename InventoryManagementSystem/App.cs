@@ -36,7 +36,7 @@ public class App
             ctx.SpinnerStyle(Style.Parse("cyan"));
 
             // Simulate some work
-            Thread.Sleep(2000);
+            Thread.Sleep(1000);
         });
     }
 
@@ -149,7 +149,7 @@ public class App
             var productsTable = new Table().Centered();
 
             //Add Default columns
-            if (viewModel.Products != null)
+            if (viewModel.Products != null || viewModel.Products.Count > 0)
             {
                 if (viewModel != null && viewModel.Products.Any() && viewModel.Products.Count > 0)
                 {
@@ -217,16 +217,23 @@ public class App
                 }
                 else if (action == "Edit Product")
                 {
+                    // Code to edit the product
                     if (products != null)
                     {
-                        var edit = await MenuPrompt(products, "Do you want to edit product?");
+                        var edit = await MenuPrompt(products, "Do you want to edit this product?");
                         if (edit)
                         {
                             Console.WriteLine("Enter the product ID to edit: ");
                             var id = Console.ReadLine();
                             id = (id?.Trim());
-                            if (int.TryParse(id, out int productId)){}
+                            if (int.TryParse(id, out int productId)) { }
                             var data = await _inventoryManager.GetById(productId, products);
+                            if (data == null)
+                            {
+                                AnsiConsole.MarkupLine("[red]There's no product with this id[/]");
+                                await Loading();
+                                continue;
+                            }
                             await EditProduct(data, products);
                         }
                     }
@@ -249,6 +256,41 @@ public class App
                 else if (action == "Remove Product")
                 {
                     // Code to remove the product
+
+                    if (products != null)
+                    {
+                        var edit = await MenuPrompt(products, "Do you want to remove this product?");
+                        if (edit)
+                        {
+                            Console.WriteLine("Enter the product ID to delete: ");
+                            var id = Console.ReadLine();
+                            id = (id?.Trim());
+                            if (int.TryParse(id, out int productId)) { }
+                            var data = await _inventoryManager.GetById(productId, products);
+                            if (data == null)
+                            {
+                                AnsiConsole.MarkupLine("[red]There's no product with this id[/]");
+                                await Loading();
+                                continue;
+                            }
+                            await DeleteProduct(data, products);
+                        }
+                    }
+                    else
+                    {
+                        AnsiConsole.Clear();
+                        await AsciiText("No products available to delete.", "center");
+                        var confirm = await MenuPrompt(products, "Do you want to go back in Inventory Menu ?");
+                        if (confirm)
+                        {
+                            await InventoryList(products);
+                        }
+                        else
+                        {
+                            await Refresh(products);
+                        }
+                        break;
+                    }
                 }
             }
 
@@ -289,41 +331,15 @@ public class App
             else
             {
                 //Add product
-                var name = await AddQuestions("Product Name : ", "Name must be unique");
-                _inventoryManager.NameChecker(name, products);
-                var quantity = await AddQuestions("Quantity : ", "Quantity must be a positive integer");
-                //Parse the quantity to decimal and check if the inputed is a non-negative number
-                if (decimal.TryParse(quantity, out decimal quantityInstock))
+                var productObject = new Product();
+                var mapped = await MappedValues(products, productObject);
+                if (mapped == null)
                 {
-                    if (quantityInstock <= 0.00m)
-                    {
-                        AnsiConsole.MarkupLine("[red]Quantity must be greater than 0.00[/]");
-                        continue;
-                    }
-                }
-                else
-                {  
-                    AnsiConsole.MarkupLine("[red]Invalid number format.[/]");
+                    await Loading();
                     continue;
                 }
 
-                var price = await AddQuestions("Price : ", "Price must be a positive integer");
-                //Parse the price to decimal and check if the inputed is a non-negative number
-                if (decimal.TryParse(price, out decimal priceInStock))
-                {
-                    if (priceInStock <= 0.00m)
-                    {
-                        AnsiConsole.MarkupLine("[red]Price must be greater than 0.00[/]");
-                        continue;
-                    }
-                }
-                else
-                {
-                    AnsiConsole.MarkupLine("[red]Invalid number format.[/]");
-                    continue;
-                }
-
-                products = await _inventoryManager.AddProduct(name, quantityInstock, priceInStock, products);
+                products = await _inventoryManager.AddProduct(mapped.Name, mapped.QuantityInStock, mapped.Price, products);
 
 
                 await Loading("Creating", "Saving", 500);
@@ -361,7 +377,7 @@ public class App
                     $"Total \n [blue]{product.Total}[/] \n" +
                     $"").Justify(Justify.Center),
                     VerticalAlignment.Middle))
-                .Padding(new Padding (2,2,2,2))
+                .Padding(new Padding(2, 2, 2, 2))
                 );
 
 
@@ -394,50 +410,105 @@ public class App
             else
             {
                 //Edit product
-                var name = await AddQuestions("Product Name : ", "Name must be unique");
-                _inventoryManager.NameChecker(name, productlist);
-                var quantity = await AddQuestions("Quantity : ", "Quantity must be a positive integer");
-                //Parse the quantity to decimal and check if the inputed is a non-negative number
-                if (decimal.TryParse(quantity, out decimal quantityInstock))
+                var mapped = await MappedValues(productlist, product);
+                if (mapped == null)
                 {
-                    if (quantityInstock <= 0.00m)
-                    {
-                        Console.WriteLine("Quantity must be greater than 0.00");
-                        Environment.Exit(0);
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("Invalid number format.");
-                    Environment.Exit(0);
+                    await Loading();
+                    continue;
                 }
 
-                var price = await AddQuestions("Price : ", "Price must be a positive integer");
-                //Parse the price to decimal and check if the inputed is a non-negative number
-                if (decimal.TryParse(price, out decimal priceInStock))
-                {
-                    if (priceInStock <= 0.00m)
-                    {
-                        Console.WriteLine("Price must be greater than 0.00");
-                        Environment.Exit(0);
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("Invalid number format.");
-                    Environment.Exit(0);
-                }
-
-                productlist = await _inventoryManager.AddProduct(name, quantityInstock, priceInStock, productlist);
+                productlist = await _inventoryManager.UpdateProduct(mapped.ProductId, mapped.Name, mapped.QuantityInStock, mapped.Price, productlist);
 
 
                 await Loading("Updating", "Saving", 500);
+
+                await InventoryList(productlist);
                 //await Refresh(products);
             }
 
 
         } while (true);
 
+    }
+    public async Task DeleteProduct(Product product, List<Product> productlist)
+    {
+        do
+        {
+            AnsiConsole.Clear();
+            await Loading();
+            await AsciiText("Remove Product", "left");
+
+            //Create Table
+            var productsTable = new Table().Centered();
+
+            //Add Default columns
+            //Header
+            productsTable.AddColumn(new TableColumn("Id").Centered());
+            productsTable.AddColumn(new TableColumn("Name").Centered());
+            productsTable.AddColumn(new TableColumn("Quantity").Centered());
+            productsTable.AddColumn(new TableColumn("Price").Centered());
+            productsTable.AddColumn(new TableColumn("Total").Centered());
+            //Body
+            productsTable.AddRow(
+                product.ProductId.ToString(),
+                product.Name.ToString(),
+                product.QuantityInStock.ToString(),
+                product.Price.ToString(),
+                product.Total.ToString() ?? "0.00"
+                );
+            //Footer
+            productsTable.AddEmptyRow().AddRow(
+                    "",
+                    "",
+                    "",
+                    "Total : ",
+                    product.Total.ToString() ?? "0.00"
+                    );
+            AnsiConsole.Write(productsTable);
+
+            //Create Prompt
+            var action = AnsiConsole.Prompt(
+                new SelectionPrompt<string>()
+                    .HighlightStyle(Style.Parse("cyan"))
+                    .Title("[underline italic cyan]Action Menu[/]")
+                    .PageSize(10)
+                    .AddChoices(new[] {
+                "Remove Product", "Inventory List", "Back to Menu"
+                    }).WrapAround());
+
+            // Handle action selection
+            if (action == "Back to Menu")
+            {
+                var confirm = await MenuPrompt(productlist);
+                if (confirm)
+                {
+                    await Refresh(productlist);
+                }
+            }
+            else if (action == "Inventory List")
+            {
+                await InventoryList(productlist);
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[red italic]This action is irreversible[/]");
+                var confirm = await MenuPrompt(productlist, "Do you want to remove this product? ");
+                if (confirm)
+                {
+                    productlist = await _inventoryManager.RemoveProduct(product.ProductId, productlist);
+
+                    await Loading("Deleting", "Removing", 500);
+
+                    await InventoryList(productlist);
+                }
+                else
+                {
+                    continue;
+                }
+                
+            }
+        } while (true);
+        
     }
 
     public async Task About(List<Product> products)
@@ -456,6 +527,96 @@ public class App
             {
                 await Refresh(products);
             }
+        } while (true);
+    }
+
+    public async Task<Product> MappedValues(List<Product> productList, Product product)
+    {
+        do
+        {
+            AnsiConsole.Clear();
+            await AsciiText($"{(product.ProductId == 0 ? "Add" : "Edit")} Product", "left");
+            await Loading("Loading", "Initializing", 500);
+            if (product.ProductId > 0)
+            {
+                //Layout
+                // Create the layout
+                var layout = new Layout("Root")
+                    .SplitColumns(
+                        new Layout("Right"));
+
+                // Update the left column
+                layout["Right"].Update(
+                new Panel(
+                    Align.Center(
+                        new Markup($"\n Id \n [blue]{product.ProductId}[/] \n " +
+                        $"Name \n [blue]{product.Name}[/] \n" +
+                        $"Quantity \n [blue]{product.QuantityInStock}[/] \n" +
+                        $"Price \n [blue]{product.Price}[/] \n" +
+                        $"Total \n [blue]{product.Total}[/] \n" +
+                        $"").Justify(Justify.Center),
+                        VerticalAlignment.Middle))
+                    .Padding(new Padding(2, 2, 2, 2))
+                    );
+
+
+                // Render the layout
+                AnsiConsole.Write(layout);
+            }
+
+            var name = await AddQuestions("Product Name : ", "Name must be unique");
+            var nameExist = await _inventoryManager.NameChecker(name, product.ProductId, productList);
+            if (nameExist)
+            {
+                Thread.Sleep(1000);
+                continue;
+            }
+
+            var quantity = await AddQuestions("Quantity : ", "Quantity must be a positive integer");
+            //Parse the quantity to decimal and check if the inputed is a non-negative number
+            if (decimal.TryParse(quantity, out decimal quantityInstock))
+            {
+                if (quantityInstock <= 0.00m)
+                {
+                    AnsiConsole.MarkupLine("[red]Quantity must be greater than 0.00[/]");
+                    Thread.Sleep(1000);
+                    continue;
+                }
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[red]Invalid number format.[/]");
+                Thread.Sleep(1000);
+                continue;
+            }
+
+            var price = await AddQuestions("Price : ", "Price must be a positive integer");
+            //Parse the price to decimal and check if the inputed is a non-negative number
+            if (decimal.TryParse(price, out decimal priceInStock))
+            {
+                if (priceInStock <= 0.00m)
+                {
+                    AnsiConsole.MarkupLine("[red]Price must be greater than 0.00[/]");
+                    Thread.Sleep(1000);
+                    continue;
+                }
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[red]Invalid number format.[/]");
+                Thread.Sleep(1000);
+                continue;
+            }
+
+            product = new Product
+            {
+                ProductId = product == null ? 0 : product.ProductId,
+                Name = name,
+                QuantityInStock = quantityInstock,
+                Price = priceInStock,
+                Total = quantityInstock * priceInStock,
+            };
+            return product;
         } while (true);
     }
 
